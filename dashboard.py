@@ -881,7 +881,7 @@ def render_asset_management_page():
         
         # Yeni TEFAS Ekle
         st.markdown("---")
-        with st.expander("➕ Yeni TEFAS Fonu Ekle"):
+        with st.expander("Yeni TEFAS Fonu Ekle", expanded=False):
             col1, col2, col3 = st.columns([2, 2, 1])
             with col1:
                 new_tefas_code = st.text_input("Fon Kodu", placeholder="Örn: TCD, AFT", key="new_tefas_code")
@@ -933,7 +933,7 @@ def render_asset_management_page():
         
         # Yeni ABD Hisse Ekle
         st.markdown("---")
-        with st.expander("➕ Yeni ABD Hissesi Ekle"):
+        with st.expander("Yeni ABD Hissesi Ekle", expanded=False):
             col1, col2, col3 = st.columns([2, 2, 1])
             with col1:
                 new_us_ticker = st.text_input("Ticker", placeholder="Örn: AAPL, GOOGL, MSFT", key="new_us_ticker")
@@ -985,7 +985,7 @@ def render_asset_management_page():
         
         # Yeni Kripto Ekle
         st.markdown("---")
-        with st.expander("➕ Yeni Kripto Ekle"):
+        with st.expander("Yeni Kripto Ekle", expanded=False):
             col1, col2, col3 = st.columns([2, 2, 1])
             with col1:
                 new_crypto_symbol = st.text_input("Symbol", placeholder="Örn: BTC, ETH, SOL", key="new_crypto_symbol")
@@ -1032,7 +1032,7 @@ def render_asset_management_page():
         
         # Yeni Nakit Ekle
         st.markdown("---")
-        with st.expander("➕ Yeni Nakit Ekle"):
+        with st.expander("Yeni Nakit Ekle", expanded=False):
             col1, col2 = st.columns([2, 2])
             with col1:
                 new_cash_code = st.text_input("Kod", placeholder="Örn: USD, DLY, DIP", key="new_cash_code")

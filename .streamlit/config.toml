@@ -14,8 +14,7 @@ enableXsrfProtection = true
 gatherUsageStats = false
 
 [client]
-showErrorDetails = true
-toolbarMode = "minimal"
+showErrorDetails = false
 
 [runner]
 fastReruns = true
