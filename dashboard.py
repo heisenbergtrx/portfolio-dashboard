@@ -61,8 +61,8 @@ from benchmark import render_benchmark_tab
 # =============================================================================
 
 st.set_page_config(
-    page_title="Portföy Dashboard",
-    page_icon="📊",
+    page_title="Barbarians Portfolio Management",
+    page_icon="⚔️",
     layout="wide",
     initial_sidebar_state="expanded"
 )
@@ -75,24 +75,234 @@ logger = logging.getLogger(__name__)
 
 
 # =============================================================================
-# STIL
+# BARBARIANS PREMIUM THEME
 # =============================================================================
 
-st.markdown("""
+BARBARIANS_THEME = """
 <style>
-    .main-title { font-size: 2.5rem; font-weight: 700; color: #1a1a2e; margin-bottom: 0.5rem; }
-    .subtitle { font-size: 1rem; color: #666; margin-bottom: 2rem; }
-    .positive { color: #00d26a !important; }
-    .negative { color: #ff6b6b !important; }
-    .user-badge {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
-        padding: 8px 15px;
-        border-radius: 20px;
-        font-size: 0.85rem;
-    }
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap');
+
+:root {
+    --bg-primary: #0a0a0f;
+    --bg-secondary: #12121a;
+    --bg-tertiary: #1a1a25;
+    --bg-card: #16161f;
+    --bg-card-hover: #1c1c28;
+    --accent-primary: #d4a853;
+    --accent-secondary: #b8923a;
+    --accent-tertiary: #e8c068;
+    --accent-glow: rgba(212, 168, 83, 0.15);
+    --text-primary: #f5f5f7;
+    --text-secondary: #a8a8b3;
+    --text-muted: #6b6b78;
+    --success: #4ade80;
+    --success-bg: rgba(74, 222, 128, 0.1);
+    --danger: #f87171;
+    --danger-bg: rgba(248, 113, 113, 0.1);
+    --border-subtle: rgba(255, 255, 255, 0.06);
+    --border-accent: rgba(212, 168, 83, 0.3);
+    --radius-md: 12px;
+    --radius-lg: 16px;
+    --radius-xl: 24px;
+}
+
+#MainMenu {visibility: hidden;}
+footer {visibility: hidden;}
+header {visibility: hidden;}
+.stDeployButton {display: none;}
+
+.stApp {
+    background: var(--bg-primary) !important;
+    font-family: 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif !important;
+}
+
+.stApp::before {
+    content: '';
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: 
+        radial-gradient(ellipse at 20% 0%, rgba(212, 168, 83, 0.03) 0%, transparent 50%),
+        radial-gradient(ellipse at 80% 100%, rgba(212, 168, 83, 0.02) 0%, transparent 50%);
+    pointer-events: none;
+    z-index: 0;
+}
+
+.block-container {
+    padding-top: 2rem !important;
+    padding-bottom: 2rem !important;
+    max-width: 1400px !important;
+}
+
+h1, h2, h3, h4, h5, h6, p, span, div, label {
+    font-family: 'Outfit', sans-serif !important;
+}
+
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: var(--bg-secondary); border-radius: 4px; }
+::-webkit-scrollbar-thumb { background: var(--bg-tertiary); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: var(--accent-secondary); }
+
+.main-title {
+    font-size: 1.5rem !important;
+    font-weight: 700 !important;
+    background: linear-gradient(135deg, #f5f5f7 0%, #e8c068 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.positive { color: var(--success) !important; }
+.negative { color: var(--danger) !important; }
+
+.user-badge {
+    background: var(--accent-glow) !important;
+    border: 1px solid var(--border-accent);
+    color: var(--text-primary) !important;
+    padding: 10px 15px;
+    border-radius: 12px;
+    font-size: 0.8rem;
+}
+
+section[data-testid="stSidebar"] {
+    background: var(--bg-secondary) !important;
+    border-right: 1px solid var(--border-subtle) !important;
+}
+
+.stButton > button {
+    background: linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-secondary) 100%) !important;
+    color: var(--bg-primary) !important;
+    border: none !important;
+    border-radius: var(--radius-md) !important;
+    font-weight: 600 !important;
+    font-family: 'Outfit', sans-serif !important;
+    box-shadow: 0 4px 12px rgba(212, 168, 83, 0.2) !important;
+    transition: all 0.2s ease !important;
+}
+
+.stButton > button:hover {
+    transform: translateY(-2px) !important;
+    box-shadow: 0 6px 20px rgba(212, 168, 83, 0.3) !important;
+}
+
+.stButton > button[kind="secondary"] {
+    background: transparent !important;
+    color: var(--text-secondary) !important;
+    border: 1px solid var(--border-subtle) !important;
+    box-shadow: none !important;
+}
+
+.stButton > button[kind="secondary"]:hover {
+    background: var(--bg-tertiary) !important;
+    border-color: var(--border-accent) !important;
+}
+
+.stTextInput > div > div > input,
+.stNumberInput > div > div > input,
+.stSelectbox > div > div > div {
+    background: var(--bg-tertiary) !important;
+    border: 1px solid var(--border-subtle) !important;
+    border-radius: var(--radius-md) !important;
+    color: var(--text-primary) !important;
+    font-family: 'Outfit', sans-serif !important;
+}
+
+.stTextInput > div > div > input:focus,
+.stNumberInput > div > div > input:focus {
+    border-color: var(--accent-primary) !important;
+    box-shadow: 0 0 0 3px var(--accent-glow) !important;
+}
+
+.stTextInput > label,
+.stNumberInput > label,
+.stSelectbox > label {
+    color: var(--text-secondary) !important;
+    font-size: 0.75rem !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.05em !important;
+}
+
+.stTabs [data-baseweb="tab-list"] {
+    background: var(--bg-tertiary) !important;
+    border-radius: var(--radius-lg) !important;
+    padding: 0.25rem !important;
+}
+
+.stTabs [data-baseweb="tab"] {
+    background: transparent !important;
+    border-radius: var(--radius-md) !important;
+    color: var(--text-secondary) !important;
+    font-family: 'Outfit', sans-serif !important;
+}
+
+.stTabs [data-baseweb="tab"]:hover {
+    background: var(--bg-card) !important;
+}
+
+.stTabs [aria-selected="true"] {
+    background: var(--accent-glow) !important;
+    color: var(--accent-primary) !important;
+}
+
+.stDataFrame {
+    border: 1px solid var(--border-subtle) !important;
+    border-radius: var(--radius-lg) !important;
+    overflow: hidden !important;
+}
+
+[data-testid="stDataFrame"] > div {
+    background: var(--bg-card) !important;
+}
+
+[data-testid="stMetricValue"] {
+    font-family: 'Outfit', sans-serif !important;
+    font-weight: 700 !important;
+    color: var(--text-primary) !important;
+}
+
+[data-testid="stMetricLabel"] {
+    text-transform: uppercase !important;
+    letter-spacing: 0.05em !important;
+    color: var(--text-muted) !important;
+    font-size: 0.75rem !important;
+}
+
+[data-testid="stMetricDelta"] {
+    font-family: 'Outfit', sans-serif !important;
+}
+
+hr {
+    border: none !important;
+    height: 1px !important;
+    background: linear-gradient(90deg, transparent, var(--border-subtle), var(--border-accent), var(--border-subtle), transparent) !important;
+}
+
+.streamlit-expanderHeader {
+    background: var(--bg-tertiary) !important;
+    border: 1px solid var(--border-subtle) !important;
+    border-radius: var(--radius-md) !important;
+}
+
+.stAlert {
+    background: var(--bg-card) !important;
+    border: 1px solid var(--border-subtle) !important;
+    border-radius: var(--radius-lg) !important;
+}
 </style>
-""", unsafe_allow_html=True)
+"""
+
+# Chart colors for Barbarians theme
+CHART_COLORS = {
+    'primary': '#d4a853',
+    'secondary': '#b8923a',
+    'tertiary': '#e8c068',
+    'success': '#4ade80',
+    'danger': '#f87171',
+    'text': '#f5f5f7',
+    'grid': 'rgba(255, 255, 255, 0.06)'
+}
+
+PIE_COLORS = ['#d4a853', '#e8c068', '#4ade80', '#60a5fa', '#fbbf24', '#b8923a', '#f87171']
+
+st.markdown(BARBARIANS_THEME, unsafe_allow_html=True)
 
 
 # =============================================================================
@@ -201,12 +411,22 @@ def take_snapshot_if_needed(portfolio: Portfolio) -> bool:
 def render_sidebar():
     """Sidebar'ı render et."""
     with st.sidebar:
+        # Barbarians Brand
+        st.markdown("""
+        <div style="display: flex; align-items: center; gap: 0.75rem; padding: 0.5rem; margin-bottom: 1rem;">
+            <div style="width: 32px; height: 32px; background: linear-gradient(135deg, #d4a853, #b8923a); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 1rem;">⚔️</div>
+            <div style="font-size: 1rem; font-weight: 700; color: #d4a853;">Barbarians</div>
+        </div>
+        """, unsafe_allow_html=True)
+        
         # Kullanıcı bilgisi
         user = get_current_user()
         if user:
+            user_name = user.get('name', user.get('email', 'Kullanıcı'))
             st.markdown(f"""
             <div class="user-badge">
-                👤 {user.get('name', user.get('email', 'Kullanıcı'))}
+                <div style="font-size: 0.5625rem; color: #6b6b78; text-transform: uppercase; letter-spacing: 0.1em;">Signed in as</div>
+                <div style="font-size: 0.75rem; color: #f5f5f7; font-weight: 500; margin-top: 2px;">👤 {user_name}</div>
             </div>
             """, unsafe_allow_html=True)
             
@@ -397,8 +617,8 @@ def render_asset_table(portfolio):
     else:
         def highlight_weekly(val):
             if isinstance(val, (int, float)):
-                if val > 0: return 'color: #00d26a'
-                elif val < 0: return 'color: #ff6b6b'
+                if val > 0: return 'color: #4ade80'
+                elif val < 0: return 'color: #f87171'
             return ''
         
         display_cols = ['Kod', 'Tür', 'Adet', 'Fiyat', 'Değer (TRY)', 'Ağırlık (%)', 'Haftalık (%)']
@@ -444,7 +664,7 @@ def render_charts(portfolio):
     
     with col1:
         fig = px.pie(pie_df, values='Değer (TRY)', names='Varlık', title='Varlık Dağılımı',
-                    color_discrete_sequence=px.colors.qualitative.Set3)
+                    color_discrete_sequence=PIE_COLORS)
         fig.update_traces(textposition='inside', textinfo='percent+label')
         fig.update_layout(showlegend=True, margin=dict(t=40, b=20))
         st.plotly_chart(fig, use_container_width=True)
@@ -463,7 +683,7 @@ def render_charts(portfolio):
     # Haftalık performans
     st.markdown("### 📈 Haftalık Performans")
     df_sorted = valid_df.sort_values('Haftalık (%)', ascending=True)
-    colors = ['#00d26a' if x >= 0 else '#ff6b6b' for x in df_sorted['Haftalık (%)']]
+    colors = ['#4ade80' if x >= 0 else '#f87171' for x in df_sorted['Haftalık (%)']]
     fig = go.Figure()
     fig.add_trace(go.Bar(x=df_sorted['Kod'], y=df_sorted['Haftalık (%)'], marker_color=colors,
                         text=[f"{v:+.1f}%" for v in df_sorted['Haftalık (%)']], textposition='outside'))
@@ -497,7 +717,7 @@ def render_risk_analysis_page():
         col1, col2 = st.columns([2, 1])
         
         with col1:
-            colors = ['#ff6b6b' if x > 20 else '#ffc107' if x > 15 else '#00d26a' for x in position_df['Ağırlık (%)']]
+            colors = ['#f87171' if x > 20 else '#fbbf24' if x > 15 else '#4ade80' for x in position_df['Ağırlık (%)']]
             fig = go.Figure()
             fig.add_trace(go.Bar(x=position_df['Kod'], y=position_df['Ağırlık (%)'], marker_color=colors,
                                 text=[f"{v:.1f}%" for v in position_df['Ağırlık (%)']], textposition='outside'))
@@ -530,7 +750,7 @@ def render_risk_analysis_page():
         with col1:
             fig = go.Figure()
             fig.add_trace(go.Scatter(x=dates, y=drawdowns, mode='lines', fill='tozeroy',
-                                    fillcolor='rgba(255, 107, 107, 0.3)', line=dict(color='#ff6b6b', width=2)))
+                                    fillcolor='rgba(248, 113, 113, 0.2)', line=dict(color='#f87171', width=2)))
             fig.add_hline(y=-10, line_dash="dash", line_color="orange", annotation_text="-10%")
             fig.add_hline(y=-20, line_dash="dash", line_color="red", annotation_text="-20%")
             fig.update_layout(yaxis=dict(ticksuffix='%', title='Drawdown'), margin=dict(t=20, b=40))
@@ -578,8 +798,8 @@ def render_weekly_report_page():
     st.markdown("### 📊 Portföy Değeri Trendi")
     fig = go.Figure()
     fig.add_trace(go.Scatter(x=df['Tarih'], y=df['Toplam Değer (₺)'], mode='lines+markers',
-                            line=dict(color='#667eea', width=3), marker=dict(size=8),
-                            fill='tozeroy', fillcolor='rgba(102, 126, 234, 0.1)'))
+                            line=dict(color='#d4a853', width=3), marker=dict(size=8),
+                            fill='tozeroy', fillcolor='rgba(212, 168, 83, 0.1)'))
     fig.update_layout(yaxis=dict(tickformat='₺,.0f'), hovermode='x unified', margin=dict(t=20, b=40))
     st.plotly_chart(fig, use_container_width=True)
     
@@ -714,7 +934,19 @@ def render_settings_page():
 
 def render_dashboard_page():
     """Dashboard ana sayfası."""
-    st.markdown('<h1 class="main-title">📊 Portföy Dashboard</h1>', unsafe_allow_html=True)
+    # Barbarians Header
+    st.markdown("""
+    <div style="background: linear-gradient(135deg, #12121a 0%, #16161f 100%); border: 1px solid rgba(255, 255, 255, 0.06); border-radius: 24px; padding: 1.5rem 2rem; margin-bottom: 1.5rem; position: relative; overflow: hidden;">
+        <div style="position: absolute; top: 0; left: 0; right: 0; height: 3px; background: linear-gradient(90deg, transparent, #d4a853, #e8c068, #d4a853, transparent);"></div>
+        <div style="display: flex; align-items: center; gap: 1rem;">
+            <div style="width: 44px; height: 44px; background: #1a1a25; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem;">⚔️</div>
+            <div>
+                <h1 style="font-size: 1.375rem !important; font-weight: 700 !important; background: linear-gradient(135deg, #f5f5f7 0%, #e8c068 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin: 0 !important;">Barbarians Portfolio Management</h1>
+                <p style="font-size: 0.6875rem !important; color: #6b6b78 !important; letter-spacing: 0.1em; text-transform: uppercase; margin: 0 !important;">Risk-First Investment Analysis</p>
+            </div>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
     
     portfolio = st.session_state.portfolio
     
