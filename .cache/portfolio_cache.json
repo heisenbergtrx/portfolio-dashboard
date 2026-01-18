@@ -1,0 +1,214 @@
+{
+  "TEFAS_MET": {
+    "timestamp": "2026-01-18T16:08:35.569227",
+    "data": {
+      "code": "MET",
+      "name": "GARANTİ PORTFÖY METAVERSE VE YENİ TEKNOLOJİLER DEĞİŞKEN FON",
+      "current_price": 4.749882,
+      "prev_week_price": 4.832105,
+      "currency": "TRY",
+      "timestamp": "2026-01-18T16:08:35.567826"
+    },
+    "is_stale": false
+  },
+  "CRYPTO_BTC_USDT": {
+    "timestamp": "2026-01-18T21:16:15.062900",
+    "data": {
+      "symbol": "BTC/USDT",
+      "name": "BTC",
+      "current_price": 95201.65,
+      "prev_week_price": 91013.65,
+      "currency": "USDT",
+      "source": "binance",
+      "timestamp": "2026-01-18T21:16:15.062891"
+    },
+    "is_stale": false
+  },
+  "CRYPTO_ETH_USDT": {
+    "timestamp": "2026-01-18T21:16:19.183131",
+    "data": {
+      "symbol": "ETH/USDT",
+      "name": "ETH",
+      "current_price": 3341.6,
+      "prev_week_price": 3123.45,
+      "currency": "USDT",
+      "source": "binance",
+      "timestamp": "2026-01-18T21:16:19.183121"
+    },
+    "is_stale": false
+  },
+  "CRYPTO_SOL_USDT": {
+    "timestamp": "2026-01-18T21:16:23.117594",
+    "data": {
+      "symbol": "SOL/USDT",
+      "name": "SOL",
+      "current_price": 142.13,
+      "prev_week_price": 139.7,
+      "currency": "USDT",
+      "source": "binance",
+      "timestamp": "2026-01-18T21:16:23.117584"
+    },
+    "is_stale": false
+  },
+  "TEFAS_DLY": {
+    "timestamp": "2026-01-18T21:16:10.202906",
+    "data": {
+      "code": "DLY",
+      "name": "DENİZ ASSET MANAGEMENT MONEY MARKET (TL) FUND",
+      "current_price": 4.800666,
+      "prev_week_price": 4.834626,
+      "currency": "TRY",
+      "timestamp": "2026-01-18T21:16:10.201887"
+    },
+    "is_stale": false
+  },
+  "TEFAS_DIP": {
+    "timestamp": "2026-01-18T21:16:11.198935",
+    "data": {
+      "code": "DIP",
+      "name": "DENİZ PORTFÖY İKİNCİ PARA PİYASASI SERBEST (TL) FON",
+      "current_price": 1.235665,
+      "prev_week_price": 1.244618,
+      "currency": "TRY",
+      "timestamp": "2026-01-18T21:16:11.197781"
+    },
+    "is_stale": false
+  },
+  "US_AAPL": {
+    "timestamp": "2026-01-18T16:25:06.244314",
+    "data": {
+      "ticker": "AAPL",
+      "name": "AAPL",
+      "current_price": 255.53,
+      "prev_week_price": 259.37,
+      "currency": "USD",
+      "source": "alphavantage",
+      "timestamp": "2026-01-18T16:25:06.244304"
+    },
+    "is_stale": false
+  },
+  "US_NVDA": {
+    "timestamp": "2026-01-18T16:25:23.265341",
+    "data": {
+      "ticker": "NVDA",
+      "name": "NVDA",
+      "current_price": 186.23,
+      "prev_week_price": 184.86,
+      "currency": "USD",
+      "source": "alphavantage",
+      "timestamp": "2026-01-18T16:25:23.265327"
+    },
+    "is_stale": false
+  },
+  "US_MSFT": {
+    "timestamp": "2026-01-18T21:07:46.004444",
+    "data": {
+      "ticker": "MSFT",
+      "name": "Microsoft Corporation",
+      "current_price": 459.8599853515625,
+      "prev_week_price": 479.2799987792969,
+      "currency": "USD",
+      "source": "yfinance",
+      "timestamp": "2026-01-18T21:07:46.004433"
+    },
+    "is_stale": false
+  },
+  "USDTRY": {
+    "timestamp": "2026-01-18T21:07:30.858764",
+    "data": {
+      "rate": 43.26250076293945
+    },
+    "is_stale": false
+  },
+  "US_AMD": {
+    "timestamp": "2026-01-18T21:07:47.559604",
+    "data": {
+      "ticker": "AMD",
+      "name": "Advanced Micro Devices, Inc.",
+      "current_price": 231.8300018310547,
+      "prev_week_price": 203.1699981689453,
+      "currency": "USD",
+      "source": "yfinance",
+      "timestamp": "2026-01-18T21:07:47.559596"
+    },
+    "is_stale": false
+  },
+  "US_GOOGL": {
+    "timestamp": "2026-01-18T21:07:49.001249",
+    "data": {
+      "ticker": "GOOGL",
+      "name": "Alphabet Inc.",
+      "current_price": 330.0,
+      "prev_week_price": 328.57000732421875,
+      "currency": "USD",
+      "source": "yfinance",
+      "timestamp": "2026-01-18T21:07:49.001240"
+    },
+    "is_stale": false
+  },
+  "US_AMZN": {
+    "timestamp": "2026-01-18T21:07:50.440114",
+    "data": {
+      "ticker": "AMZN",
+      "name": "Amazon.com, Inc.",
+      "current_price": 239.1199951171875,
+      "prev_week_price": 247.3800048828125,
+      "currency": "USD",
+      "source": "yfinance",
+      "timestamp": "2026-01-18T21:07:50.440108"
+    },
+    "is_stale": false
+  },
+  "US_SPGI": {
+    "timestamp": "2026-01-18T21:07:52.099758",
+    "data": {
+      "ticker": "SPGI",
+      "name": "S&P Global Inc.",
+      "current_price": 546.3499755859375,
+      "prev_week_price": 541.9400024414062,
+      "currency": "USD",
+      "source": "yfinance",
+      "timestamp": "2026-01-18T21:07:52.099751"
+    },
+    "is_stale": false
+  },
+  "US_MA": {
+    "timestamp": "2026-01-18T21:07:53.634043",
+    "data": {
+      "ticker": "MA",
+      "name": "Mastercard Incorporated",
+      "current_price": 539.489990234375,
+      "prev_week_price": 575.5399780273438,
+      "currency": "USD",
+      "source": "yfinance",
+      "timestamp": "2026-01-18T21:07:53.634034"
+    },
+    "is_stale": false
+  },
+  "US_NFLX": {
+    "timestamp": "2026-01-18T21:07:55.157635",
+    "data": {
+      "ticker": "NFLX",
+      "name": "Netflix, Inc.",
+      "current_price": 88.0,
+      "prev_week_price": 89.45999908447266,
+      "currency": "USD",
+      "source": "yfinance",
+      "timestamp": "2026-01-18T21:07:55.157629"
+    },
+    "is_stale": false
+  },
+  "US_META": {
+    "timestamp": "2026-01-18T21:07:56.463629",
+    "data": {
+      "ticker": "META",
+      "name": "Meta Platforms, Inc.",
+      "current_price": 620.25,
+      "prev_week_price": 653.0599975585938,
+      "currency": "USD",
+      "source": "yfinance",
+      "timestamp": "2026-01-18T21:07:56.463622"
+    },
+    "is_stale": false
+  }
+}
