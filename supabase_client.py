@@ -2,7 +2,7 @@
 supabase_client.py - Supabase Authentication & Database
 ========================================================
 
-Google Auth ile giriş ve kullanıcı verisi yönetimi.
+Google Auth + Email/Password ile giriş ve kullanıcı verisi yönetimi.
 
 Yazar: Portfolio Dashboard
 Tarih: Ocak 2026
@@ -63,15 +63,6 @@ def render_login_page():
             text-align: center;
             color: white;
         }
-        .login-title {
-            font-size: 2rem;
-            margin-bottom: 10px;
-        }
-        .login-subtitle {
-            font-size: 1rem;
-            opacity: 0.9;
-            margin-bottom: 30px;
-        }
     </style>
     """, unsafe_allow_html=True)
     
@@ -91,40 +82,126 @@ def render_login_page():
         
         st.markdown("---")
         
-        # Google ile giriş butonu
-        supabase = get_supabase_client()
+        # Tab seçimi: Email veya Google
+        tab1, tab2 = st.tabs(["📧 Email ile Giriş", "🔑 Google ile Giriş"])
         
-        if st.button("🔑 Google ile Giriş Yap", type="primary", use_container_width=True):
-            try:
-                # OAuth URL oluştur - redirect_to olmadan, Supabase otomatik halleder
-                auth_response = supabase.auth.sign_in_with_oauth({
-                    "provider": "google"
-                })
-                
-                if auth_response and auth_response.url:
-                    st.markdown(f'<meta http-equiv="refresh" content="0;url={auth_response.url}">', unsafe_allow_html=True)
-                    st.info("Google'a yönlendiriliyorsunuz...")
-                    
-            except Exception as e:
-                st.error(f"Giriş hatası: {e}")
+        with tab1:
+            render_email_login()
+        
+        with tab2:
+            render_google_login()
         
         st.markdown("---")
         st.caption("Verileriniz güvenle Supabase'de saklanır.")
 
 
+def render_email_login():
+    """Email/Password login formu."""
+    supabase = get_supabase_client()
+    
+    # Login veya Register seçimi
+    auth_mode = st.radio("", ["Giriş Yap", "Kayıt Ol"], horizontal=True, label_visibility="collapsed")
+    
+    email = st.text_input("Email", placeholder="ornek@email.com", key="email_input")
+    password = st.text_input("Şifre", type="password", placeholder="••••••••", key="password_input")
+    
+    if auth_mode == "Kayıt Ol":
+        password_confirm = st.text_input("Şifre Tekrar", type="password", placeholder="••••••••", key="password_confirm")
+        
+        if st.button("📝 Kayıt Ol", type="primary", use_container_width=True):
+            if not email or not password:
+                st.error("Email ve şifre gerekli!")
+                return
+            
+            if password != password_confirm:
+                st.error("Şifreler eşleşmiyor!")
+                return
+            
+            if len(password) < 6:
+                st.error("Şifre en az 6 karakter olmalı!")
+                return
+            
+            try:
+                result = supabase.auth.sign_up({
+                    "email": email,
+                    "password": password
+                })
+                
+                if result.user:
+                    st.success("✅ Kayıt başarılı! Email'inizi kontrol edin veya direkt giriş yapın.")
+                else:
+                    st.error("Kayıt hatası!")
+                    
+            except Exception as e:
+                error_msg = str(e)
+                if "already registered" in error_msg.lower():
+                    st.error("Bu email zaten kayıtlı!")
+                else:
+                    st.error(f"Hata: {error_msg}")
+    
+    else:  # Giriş Yap
+        if st.button("🔓 Giriş Yap", type="primary", use_container_width=True):
+            if not email or not password:
+                st.error("Email ve şifre gerekli!")
+                return
+            
+            try:
+                result = supabase.auth.sign_in_with_password({
+                    "email": email,
+                    "password": password
+                })
+                
+                if result.user:
+                    st.session_state.user = {
+                        'id': result.user.id,
+                        'email': result.user.email,
+                        'name': result.user.user_metadata.get('full_name', result.user.email)
+                    }
+                    st.session_state.access_token = result.session.access_token
+                    st.success("✅ Giriş başarılı!")
+                    st.rerun()
+                else:
+                    st.error("Giriş hatası!")
+                    
+            except Exception as e:
+                error_msg = str(e)
+                if "invalid" in error_msg.lower():
+                    st.error("Email veya şifre yanlış!")
+                else:
+                    st.error(f"Hata: {error_msg}")
+
+
+def render_google_login():
+    """Google OAuth login."""
+    supabase = get_supabase_client()
+    
+    st.info("⚠️ Google OAuth şu an yapılandırılıyor. Sorun yaşarsanız Email ile giriş yapın.")
+    
+    if st.button("🔑 Google ile Giriş Yap", type="primary", use_container_width=True):
+        try:
+            auth_response = supabase.auth.sign_in_with_oauth({
+                "provider": "google"
+            })
+            
+            if auth_response and auth_response.url:
+                st.markdown(f'<meta http-equiv="refresh" content="0;url={auth_response.url}">', unsafe_allow_html=True)
+                st.info("Google'a yönlendiriliyorsunuz...")
+                
+        except Exception as e:
+            st.error(f"Giriş hatası: {e}")
+
+
 def handle_oauth_callback():
     """OAuth callback'i işle."""
-    # URL'den access_token al
     query_params = st.query_params
     
+    # Hash fragment'tan token al (Supabase bazen böyle gönderiyor)
     if 'access_token' in query_params:
         access_token = query_params['access_token']
         refresh_token = query_params.get('refresh_token', '')
         
         try:
             supabase = get_supabase_client()
-            
-            # Session'ı set et
             session = supabase.auth.set_session(access_token, refresh_token)
             
             if session and session.user:
@@ -134,10 +211,7 @@ def handle_oauth_callback():
                     'name': session.user.user_metadata.get('full_name', session.user.email)
                 }
                 st.session_state.access_token = access_token
-                
-                # URL'den token'ları temizle
                 st.query_params.clear()
-                
                 return True
                 
         except Exception as e:
@@ -168,7 +242,6 @@ def save_portfolio_config(user_id: str, config: dict) -> bool:
     try:
         supabase = get_supabase_client()
         
-        # Upsert (varsa güncelle, yoksa ekle)
         result = supabase.table('portfolios').upsert({
             'user_id': user_id,
             'config': config,
@@ -231,7 +304,6 @@ def load_snapshots(user_id: str, limit: int = 52) -> list[dict]:
             .execute()
         
         if result.data:
-            # Eski'den yeni'ye sırala
             return list(reversed(result.data))
         
         return []
@@ -264,7 +336,6 @@ def should_take_weekly_snapshot(user_id: str) -> bool:
     """Bu hafta snapshot alınmış mı kontrol et."""
     today = datetime.now()
     
-    # Cuma mı?
     if today.weekday() != 4:
         return False
     
@@ -279,7 +350,6 @@ def should_take_weekly_snapshot(user_id: str) -> bool:
             .eq('week_number', current_week)\
             .execute()
         
-        # Bu hafta snapshot yoksa True döndür
         return len(result.data) == 0
         
     except Exception as e:
