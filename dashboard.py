@@ -839,16 +839,26 @@ def render_benchmark_page():
 # VARLIK YÖNETİMİ (Düzeltilmiş - Varlık Ekleme Destekli)
 # =============================================================================
 
+def safe_float(value, default=0.0):
+    """Güvenli float dönüşümü."""
+    if value is None:
+        return default
+    try:
+        return float(value)
+    except (ValueError, TypeError):
+        return default
+
+
 def render_asset_management_page():
     """Varlık yönetimi sayfası - Ekleme destekli."""
-    st.markdown("## 📦 Varlık Yönetimi")
+    st.markdown("## Varlık Yönetimi")
     
     config = st.session_state.config
     if not config:
         st.warning("Önce sol menüden **Yükle** butonuna basın.")
         return
     
-    tab1, tab2, tab3, tab4 = st.tabs(["🏦 TEFAS", "🇺🇸 ABD Hisse", "₿ Kripto", "💵 Nakit"])
+    tab1, tab2, tab3, tab4 = st.tabs(["TEFAS", "ABD Hisse", "Kripto", "Nakit"])
     
     # ========== TEFAS ==========
     with tab1:
@@ -861,21 +871,21 @@ def render_asset_management_page():
             col1, col2, col3, col4 = st.columns([2, 2, 1, 0.5])
             with col1:
                 config.tefas_funds[i]['code'] = st.text_input(
-                    f"Kod", fund['code'], key=f"tefas_code_{i}", label_visibility="collapsed",
+                    "Kod", fund.get('code', ''), key=f"tefas_code_{i}", label_visibility="collapsed",
                     placeholder="Örn: TCD"
                 )
             with col2:
                 config.tefas_funds[i]['shares'] = st.number_input(
-                    f"Adet", float(fund['shares']), key=f"tefas_shares_{i}", label_visibility="collapsed",
+                    "Adet", safe_float(fund.get('shares', 0)), key=f"tefas_shares_{i}", label_visibility="collapsed",
                     min_value=0.0, step=1.0
                 )
             with col3:
                 config.tefas_funds[i]['target_weight'] = st.number_input(
-                    f"Hedef %", float(fund.get('target_weight', 0)), key=f"tefas_weight_{i}", 
+                    "Hedef %", safe_float(fund.get('target_weight', 0)), key=f"tefas_weight_{i}", 
                     label_visibility="collapsed", min_value=0.0, max_value=100.0
                 )
             with col4:
-                if st.button("🗑️", key=f"del_tefas_{i}", help="Sil"):
+                if st.button("X", key=f"del_tefas_{i}", help="Sil"):
                     config.tefas_funds.pop(i)
                     st.rerun()
         
@@ -890,14 +900,14 @@ def render_asset_management_page():
             with col3:
                 new_tefas_weight = st.number_input("Hedef %", min_value=0.0, max_value=100.0, key="new_tefas_weight")
             
-            if st.button("✅ TEFAS Ekle", key="add_tefas"):
+            if st.button("TEFAS Ekle", key="add_tefas"):
                 if new_tefas_code:
                     config.tefas_funds.append({
                         'code': new_tefas_code.upper(),
                         'shares': new_tefas_shares,
                         'target_weight': new_tefas_weight
                     })
-                    st.success(f"✅ {new_tefas_code.upper()} eklendi!")
+                    st.success(f"{new_tefas_code.upper()} eklendi!")
                     st.rerun()
                 else:
                     st.error("Fon kodu gerekli!")
@@ -913,21 +923,21 @@ def render_asset_management_page():
             col1, col2, col3, col4 = st.columns([2, 2, 1, 0.5])
             with col1:
                 config.us_stocks[i]['ticker'] = st.text_input(
-                    f"Ticker", stock['ticker'], key=f"us_ticker_{i}", label_visibility="collapsed",
+                    "Ticker", stock.get('ticker', ''), key=f"us_ticker_{i}", label_visibility="collapsed",
                     placeholder="Örn: AAPL"
                 )
             with col2:
                 config.us_stocks[i]['shares'] = st.number_input(
-                    f"Adet", float(stock['shares']), key=f"us_shares_{i}", label_visibility="collapsed",
+                    "Adet", safe_float(stock.get('shares', 0)), key=f"us_shares_{i}", label_visibility="collapsed",
                     min_value=0.0, step=0.01
                 )
             with col3:
                 config.us_stocks[i]['target_weight'] = st.number_input(
-                    f"Hedef %", float(stock.get('target_weight', 0)), key=f"us_weight_{i}",
+                    "Hedef %", safe_float(stock.get('target_weight', 0)), key=f"us_weight_{i}",
                     label_visibility="collapsed", min_value=0.0, max_value=100.0
                 )
             with col4:
-                if st.button("🗑️", key=f"del_us_{i}", help="Sil"):
+                if st.button("X", key=f"del_us_{i}", help="Sil"):
                     config.us_stocks.pop(i)
                     st.rerun()
         
@@ -942,14 +952,14 @@ def render_asset_management_page():
             with col3:
                 new_us_weight = st.number_input("Hedef %", min_value=0.0, max_value=100.0, key="new_us_weight")
             
-            if st.button("✅ Hisse Ekle", key="add_us"):
+            if st.button("Hisse Ekle", key="add_us"):
                 if new_us_ticker:
                     config.us_stocks.append({
                         'ticker': new_us_ticker.upper(),
                         'shares': new_us_shares,
                         'target_weight': new_us_weight
                     })
-                    st.success(f"✅ {new_us_ticker.upper()} eklendi!")
+                    st.success(f"{new_us_ticker.upper()} eklendi!")
                     st.rerun()
                 else:
                     st.error("Ticker gerekli!")
@@ -965,21 +975,21 @@ def render_asset_management_page():
             col1, col2, col3, col4 = st.columns([2, 2, 1, 0.5])
             with col1:
                 config.crypto[i]['symbol'] = st.text_input(
-                    f"Symbol", crypto['symbol'], key=f"crypto_symbol_{i}", label_visibility="collapsed",
+                    "Symbol", crypto.get('symbol', ''), key=f"crypto_symbol_{i}", label_visibility="collapsed",
                     placeholder="Örn: BTC"
                 )
             with col2:
                 config.crypto[i]['amount'] = st.number_input(
-                    f"Miktar", float(crypto['amount']), key=f"crypto_amount_{i}", label_visibility="collapsed",
+                    "Miktar", safe_float(crypto.get('amount', 0)), key=f"crypto_amount_{i}", label_visibility="collapsed",
                     min_value=0.0, step=0.0001, format="%.4f"
                 )
             with col3:
                 config.crypto[i]['target_weight'] = st.number_input(
-                    f"Hedef %", float(crypto.get('target_weight', 0)), key=f"crypto_weight_{i}",
+                    "Hedef %", safe_float(crypto.get('target_weight', 0)), key=f"crypto_weight_{i}",
                     label_visibility="collapsed", min_value=0.0, max_value=100.0
                 )
             with col4:
-                if st.button("🗑️", key=f"del_crypto_{i}", help="Sil"):
+                if st.button("X", key=f"del_crypto_{i}", help="Sil"):
                     config.crypto.pop(i)
                     st.rerun()
         
@@ -994,14 +1004,14 @@ def render_asset_management_page():
             with col3:
                 new_crypto_weight = st.number_input("Hedef %", min_value=0.0, max_value=100.0, key="new_crypto_weight")
             
-            if st.button("✅ Kripto Ekle", key="add_crypto"):
+            if st.button("Kripto Ekle", key="add_crypto"):
                 if new_crypto_symbol:
                     config.crypto.append({
                         'symbol': new_crypto_symbol.upper(),
                         'amount': new_crypto_amount,
                         'target_weight': new_crypto_weight
                     })
-                    st.success(f"✅ {new_crypto_symbol.upper()} eklendi!")
+                    st.success(f"{new_crypto_symbol.upper()} eklendi!")
                     st.rerun()
                 else:
                     st.error("Symbol gerekli!")
@@ -1017,16 +1027,16 @@ def render_asset_management_page():
             col1, col2, col3 = st.columns([2, 2, 0.5])
             with col1:
                 config.cash[i]['code'] = st.text_input(
-                    f"Kod", cash['code'], key=f"cash_code_{i}", label_visibility="collapsed",
+                    "Kod", cash.get('code', ''), key=f"cash_code_{i}", label_visibility="collapsed",
                     placeholder="Örn: USD"
                 )
             with col2:
                 config.cash[i]['amount'] = st.number_input(
-                    f"Miktar", float(cash['amount']), key=f"cash_amount_{i}", label_visibility="collapsed",
+                    "Miktar", safe_float(cash.get('amount', 0)), key=f"cash_amount_{i}", label_visibility="collapsed",
                     min_value=0.0, step=1.0
                 )
             with col3:
-                if st.button("🗑️", key=f"del_cash_{i}", help="Sil"):
+                if st.button("X", key=f"del_cash_{i}", help="Sil"):
                     config.cash.pop(i)
                     st.rerun()
         
@@ -1039,13 +1049,13 @@ def render_asset_management_page():
             with col2:
                 new_cash_amount = st.number_input("Miktar", min_value=0.0, step=1.0, key="new_cash_amount")
             
-            if st.button("✅ Nakit Ekle", key="add_cash"):
+            if st.button("Nakit Ekle", key="add_cash"):
                 if new_cash_code:
                     config.cash.append({
                         'code': new_cash_code.upper(),
                         'amount': new_cash_amount
                     })
-                    st.success(f"✅ {new_cash_code.upper()} eklendi!")
+                    st.success(f"{new_cash_code.upper()} eklendi!")
                     st.rerun()
                 else:
                     st.error("Kod gerekli!")
@@ -1054,9 +1064,9 @@ def render_asset_management_page():
     st.markdown("---")
     col1, col2 = st.columns([3, 1])
     with col1:
-        if st.button("💾 Tümünü Kaydet", type="primary", use_container_width=True):
+        if st.button("Tümünü Kaydet", type="primary", use_container_width=True):
             if save_config_to_cloud(config):
-                st.success("✅ Portföy kaydedildi!")
+                st.success("Portföy kaydedildi!")
                 st.session_state.portfolio = Portfolio(config)
             else:
                 st.error("Kaydetme hatası!")
