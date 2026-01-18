@@ -9,6 +9,13 @@ thresholds:
   weight_deviation_threshold: 5.0
   high_volatility_threshold: 15.0
   high_correlation_threshold: 0.7
+
+# Nakit rezervi olarak sayılan varlıklar
+cash_reserve_codes:
+  - DLY
+  - DIP
+  - USD
+
 tefas_funds:
 - code: DLY
   shares: 5000.0
@@ -16,6 +23,7 @@ tefas_funds:
 - code: DIP
   shares: 3000.0
   target_weight: 10.0
+
 us_stocks:
 - ticker: MSFT
   shares: 25.0
@@ -41,6 +49,7 @@ us_stocks:
 - ticker: META
   shares: 1.0
   target_weight: 5.0
+
 crypto:
 - symbol: BTC/USDT
   amount: 0.15
@@ -50,4 +59,10 @@ crypto:
   target_weight: 5.0
 - symbol: SOL/USDT
   amount: 20.0
+  target_weight: 5.0
+
+# USD Nakit
+cash:
+- code: USD
+  amount: 1000.0
   target_weight: 5.0

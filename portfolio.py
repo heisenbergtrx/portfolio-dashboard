@@ -1,14 +1,17 @@
 """
-portfolio.py - Portföy Hesaplama ve Optimizasyon Modülü
-=======================================================
+portfolio.py - Portföy Hesaplama ve Optimizasyon Modülü (v2)
+============================================================
 
 Bu modül portföy analizi için gerekli tüm hesaplamaları yapar:
 - Getiri hesaplamaları (günlük, haftalık, aylık)
 - Portföy değeri ve ağırlık hesaplamaları
 - Risk metrikleri (volatilite, Sharpe Ratio)
 - Korelasyon matrisi
-- Rebalancing önerileri
-- İşlem önerileri
+- Nakit rezervi takibi
+
+v2 Güncellemeler:
+- USD nakit desteği
+- Nakit rezervi kategorisi (DLY, DIP, USD)
 
 Yazar: Portfolio Dashboard
 Tarih: Ocak 2026
@@ -46,12 +49,13 @@ class Asset:
     """Tek bir varlığı temsil eden sınıf."""
     code: str                    # Varlık kodu/ticker/sembol
     name: str                    # Varlık adı
-    asset_type: str              # "TEFAS", "US_STOCK", "CRYPTO"
+    asset_type: str              # "TEFAS", "US_STOCK", "CRYPTO", "CASH"
     shares: float                # Adet/miktar
     current_price: float         # Güncel fiyat
     prev_week_price: float       # Önceki hafta fiyatı
     currency: str                # Para birimi
     target_weight: float         # Hedef ağırlık (%)
+    is_cash_reserve: bool = False  # Nakit rezervi mi?
     
     # Hesaplanan alanlar
     value_original: float = 0.0  # Orijinal para birimi cinsinden değer
@@ -59,7 +63,6 @@ class Asset:
     actual_weight: float = 0.0   # Gerçek ağırlık (%)
     weekly_return: float = 0.0   # Haftalık getiri (%)
     weight_deviation: float = 0.0  # Hedeften sapma (%)
-    recommendation: str = ""     # İşlem önerisi
     
     @property
     def is_valid(self) -> bool:
@@ -87,10 +90,14 @@ class PortfolioConfig:
     high_volatility_threshold: float = 15.0
     high_correlation_threshold: float = 0.7
     
+    # Nakit rezervi kodları
+    cash_reserve_codes: list[str] = field(default_factory=lambda: ['DLY', 'DIP', 'USD'])
+    
     # Varlık listeleri
     tefas_funds: list[dict] = field(default_factory=list)
     us_stocks: list[dict] = field(default_factory=list)
     crypto: list[dict] = field(default_factory=list)
+    cash: list[dict] = field(default_factory=list)  # USD nakit
 
 
 @dataclass
@@ -101,6 +108,10 @@ class PortfolioMetrics:
     sharpe_ratio: Optional[float] = None
     volatility_monthly: Optional[float] = None
     diversification_score: Optional[float] = None
+    
+    # Nakit rezervi
+    cash_reserve_try: float = 0.0
+    cash_reserve_pct: float = 0.0
     
     # Uyarılar
     warnings: list[str] = field(default_factory=list)
@@ -148,14 +159,19 @@ def load_config(config_path: str = "config.yaml") -> PortfolioConfig:
             high_volatility_threshold=thresholds.get('high_volatility_threshold', 15.0),
             high_correlation_threshold=thresholds.get('high_correlation_threshold', 0.7),
             
+            # Cash reserve codes
+            cash_reserve_codes=data.get('cash_reserve_codes', ['DLY', 'DIP', 'USD']),
+            
             # Assets
             tefas_funds=data.get('tefas_funds', []),
             us_stocks=data.get('us_stocks', []),
-            crypto=data.get('crypto', [])
+            crypto=data.get('crypto', []),
+            cash=data.get('cash', [])
         )
         
         logger.info(f"Config yüklendi: {len(config.tefas_funds)} TEFAS, "
-                   f"{len(config.us_stocks)} ABD, {len(config.crypto)} Kripto")
+                   f"{len(config.us_stocks)} ABD, {len(config.crypto)} Kripto, "
+                   f"{len(config.cash)} Nakit")
         
         return config
         
@@ -236,68 +252,96 @@ class Portfolio:
         self.assets = []
         
         # TEFAS fonları
-        for fund_config in self.config.tefas_funds:
-            code = fund_config['code']
+        for fund in self.config.tefas_funds:
+            code = fund['code']
             price_info = self.price_data.get('tefas', {}).get(code, {})
+            
+            is_cash = code in self.config.cash_reserve_codes
             
             asset = Asset(
                 code=code,
                 name=price_info.get('name', code),
                 asset_type="TEFAS",
-                shares=fund_config.get('shares', 0),
-                current_price=price_info.get('current_price') or 0,
-                prev_week_price=price_info.get('prev_week_price') or 0,
+                shares=fund['shares'],
+                current_price=price_info.get('current_price', 0) or 0,
+                prev_week_price=price_info.get('prev_week_price', 0) or 0,
                 currency='TRY',
-                target_weight=fund_config.get('target_weight', 0)
+                target_weight=fund.get('target_weight', 0),
+                is_cash_reserve=is_cash
             )
             self.assets.append(asset)
         
         # ABD hisseleri
-        for stock_config in self.config.us_stocks:
-            ticker = stock_config['ticker']
+        for stock in self.config.us_stocks:
+            ticker = stock['ticker']
             price_info = self.price_data.get('us_stocks', {}).get(ticker, {})
             
             asset = Asset(
                 code=ticker,
                 name=price_info.get('name', ticker),
                 asset_type="US_STOCK",
-                shares=stock_config.get('shares', 0),
-                current_price=price_info.get('current_price') or 0,
-                prev_week_price=price_info.get('prev_week_price') or 0,
+                shares=stock['shares'],
+                current_price=price_info.get('current_price', 0) or 0,
+                prev_week_price=price_info.get('prev_week_price', 0) or 0,
                 currency='USD',
-                target_weight=stock_config.get('target_weight', 0)
+                target_weight=stock.get('target_weight', 0),
+                is_cash_reserve=False
             )
             self.assets.append(asset)
         
         # Kripto
-        for crypto_config in self.config.crypto:
-            symbol = crypto_config['symbol']
+        for crypto in self.config.crypto:
+            symbol = crypto['symbol']
             price_info = self.price_data.get('crypto', {}).get(symbol, {})
             
+            # Kod olarak sembolün ilk kısmını al (BTC/USDT -> BTC)
+            code = symbol.split('/')[0]
+            
             asset = Asset(
-                code=symbol,
-                name=price_info.get('name', symbol.split('/')[0]),
+                code=code,
+                name=price_info.get('name', code),
                 asset_type="CRYPTO",
-                shares=crypto_config.get('amount', 0),
-                current_price=price_info.get('current_price') or 0,
-                prev_week_price=price_info.get('prev_week_price') or 0,
+                shares=crypto['amount'],
+                current_price=price_info.get('current_price', 0) or 0,
+                prev_week_price=price_info.get('prev_week_price', 0) or 0,
                 currency='USDT',
-                target_weight=crypto_config.get('target_weight', 0)
+                target_weight=crypto.get('target_weight', 0),
+                is_cash_reserve=False
             )
             self.assets.append(asset)
+        
+        # USD Nakit
+        for cash_item in self.config.cash:
+            code = cash_item['code']
+            
+            # USD için fiyat = 1 USD (TRY'ye çevrilecek)
+            asset = Asset(
+                code=code,
+                name="USD Nakit",
+                asset_type="CASH",
+                shares=cash_item['amount'],
+                current_price=1.0,  # 1 USD = 1 USD
+                prev_week_price=1.0,
+                currency='USD',
+                target_weight=cash_item.get('target_weight', 0),
+                is_cash_reserve=True
+            )
+            self.assets.append(asset)
+        
+        # Değerleri hesapla
+        self._calculate_values()
     
-    def _calculate_metrics(self) -> None:
-        """Tüm metrikleri hesapla."""
-        # Her varlık için değer ve getiri hesapla
-        total_value = 0.0
-        prev_total_value = 0.0
+    def _calculate_values(self) -> None:
+        """Her varlık için değer ve ağırlık hesapla."""
+        # Önce toplam değeri hesapla
+        total_try = 0.0
         
         for asset in self.assets:
             if not asset.is_valid:
                 continue
             
             # Orijinal değer
-            asset.value_original = asset.current_price * asset.shares
+            asset.value_original = asset.shares * asset.current_price
             
             # TRY değeri
             if asset.currency in ('USD', 'USDT'):
@@ -305,171 +349,155 @@ class Portfolio:
             else:
                 asset.value_try = asset.value_original
             
-            total_value += asset.value_try
+            total_try += asset.value_try
+        
+        # Şimdi ağırlıkları ve diğer metrikleri hesapla
+        for asset in self.assets:
+            if not asset.is_valid:
+                continue
             
-            # Önceki hafta değeri (TRY)
+            # Ağırlık
+            if total_try > 0:
+                asset.actual_weight = (asset.value_try / total_try) * 100
+            
+            # Sapma
+            asset.weight_deviation = asset.actual_weight - asset.target_weight
+            
+            # Haftalık getiri
             if asset.prev_week_price and asset.prev_week_price > 0:
-                prev_value_orig = asset.prev_week_price * asset.shares
-                if asset.currency in ('USD', 'USDT'):
-                    prev_value_try = prev_value_orig * self.usd_try_rate
-                else:
-                    prev_value_try = prev_value_orig
-                prev_total_value += prev_value_try
-                
-                # Haftalık getiri (%)
                 asset.weekly_return = (
                     (asset.current_price - asset.prev_week_price) / 
                     asset.prev_week_price * 100
                 )
-        
-        # Portföy toplam değeri
-        self.metrics.total_value_try = total_value
-        
-        # Ağırlıklar
-        for asset in self.assets:
-            if total_value > 0 and asset.is_valid:
-                asset.actual_weight = (asset.value_try / total_value) * 100
-                asset.weight_deviation = asset.actual_weight - asset.target_weight
-        
-        # Portföy haftalık getirisi
-        if prev_total_value > 0:
-            self.metrics.weekly_return_pct = (
-                (total_value - prev_total_value) / prev_total_value * 100
-            )
-        
-        # İşlem önerilerini hesapla
-        self._calculate_recommendations()
-        
-        # Risk metriklerini hesapla
-        self._calculate_risk_metrics()
     
-    def _calculate_recommendations(self) -> None:
-        """Her varlık için işlem önerisi hesapla."""
-        for asset in self.assets:
-            if not asset.is_valid:
-                asset.recommendation = "⚠️ Veri yok"
-                continue
-            
-            recommendations = []
-            
-            # Haftalık getiri bazlı öneri
-            if asset.weekly_return <= self.config.weekly_loss_threshold:
-                recommendations.append(f"📉 Satış düşün (-%{abs(asset.weekly_return):.1f})")
-            elif asset.weekly_return >= self.config.weekly_gain_threshold:
-                recommendations.append(f"💰 Kar al (+%{asset.weekly_return:.1f})")
-            
-            # Ağırlık sapması bazlı öneri
-            if abs(asset.weight_deviation) >= self.config.weight_deviation_threshold:
-                if asset.weight_deviation > 0:
-                    recommendations.append(f"⚖️ Azalt (hedef: %{asset.target_weight:.0f})")
-                else:
-                    recommendations.append(f"⚖️ Artır (hedef: %{asset.target_weight:.0f})")
-            
-            asset.recommendation = " | ".join(recommendations) if recommendations else "✓ Tut"
-    
-    def _calculate_risk_metrics(self) -> None:
-        """Risk metriklerini hesapla (Sharpe, volatilite, vb.)."""
-        self.metrics.warnings = []
+    def _calculate_metrics(self) -> None:
+        """Portföy metriklerini hesapla."""
+        valid_assets = [a for a in self.assets if a.is_valid]
         
-        # Geçmiş verileri topla
-        all_returns = []
-        
-        for asset in self.assets:
-            if not asset.is_valid:
-                continue
-            
-            # 30 günlük geçmiş veri
-            try:
-                if asset.asset_type == "TEFAS":
-                    hist = fetch_tefas_history(asset.code, days=30)
-                elif asset.asset_type == "US_STOCK":
-                    hist = fetch_us_stock_history(asset.code, days=30)
-                elif asset.asset_type == "CRYPTO":
-                    hist = fetch_crypto_history(asset.code, days=30)
-                else:
-                    continue
-                
-                if hist is not None and len(hist) > 5:
-                    # Günlük getirileri hesapla
-                    returns = hist['Close'].pct_change().dropna()
-                    all_returns.append({
-                        'code': asset.code,
-                        'returns': returns,
-                        'weight': asset.actual_weight / 100
-                    })
-            except Exception as e:
-                logger.warning(f"Geçmiş veri alınamadı ({asset.code}): {e}")
-        
-        if not all_returns:
-            logger.warning("Risk metrikleri hesaplanamadı: yetersiz veri")
+        if not valid_assets:
             return
         
-        # Portföy getirilerini ağırlıklı hesapla
+        # Toplam değer
+        self.metrics.total_value_try = sum(a.value_try for a in valid_assets)
+        
+        # Nakit rezervi
+        cash_assets = [a for a in valid_assets if a.is_cash_reserve]
+        self.metrics.cash_reserve_try = sum(a.value_try for a in cash_assets)
+        
+        if self.metrics.total_value_try > 0:
+            self.metrics.cash_reserve_pct = (
+                self.metrics.cash_reserve_try / self.metrics.total_value_try * 100
+            )
+        
+        # Ağırlıklı haftalık getiri
+        weighted_return = 0.0
+        for asset in valid_assets:
+            weight = asset.value_try / self.metrics.total_value_try if self.metrics.total_value_try > 0 else 0
+            weighted_return += asset.weekly_return * weight
+        
+        self.metrics.weekly_return_pct = weighted_return
+        
+        # Uyarılar
+        self.metrics.warnings = []
+        
+        if self.metrics.weekly_return_pct < self.config.weekly_loss_threshold:
+            self.metrics.warnings.append(
+                f"⚠️ Haftalık kayıp yüksek: {self.metrics.weekly_return_pct:.1f}%"
+            )
+        
+        # Risk metrikleri
+        self._calculate_risk_metrics()
+    
+    def _calculate_risk_metrics(self) -> None:
+        """Risk metriklerini hesapla."""
         try:
-            # DataFrame oluştur
-            returns_df = pd.DataFrame()
-            for item in all_returns:
-                returns_df[item['code']] = item['returns']
+            # Geçmiş verileri topla
+            all_returns = []
             
-            returns_df = returns_df.dropna()
+            for asset in self.assets:
+                if not asset.is_valid:
+                    continue
+                
+                # Nakit için volatilite hesaplama
+                if asset.asset_type == "CASH":
+                    continue
+                
+                try:
+                    if asset.asset_type == "TEFAS":
+                        hist = fetch_tefas_history(asset.code, days=30)
+                    elif asset.asset_type == "US_STOCK":
+                        hist = fetch_us_stock_history(asset.code, days=30)
+                    elif asset.asset_type == "CRYPTO":
+                        symbol = f"{asset.code}/USDT"
+                        hist = fetch_crypto_history(symbol, days=30)
+                    else:
+                        continue
+                    
+                    if hist is not None and len(hist) > 5:
+                        returns = hist['Close'].pct_change().dropna()
+                        all_returns.append({
+                            'code': asset.code,
+                            'returns': returns,
+                            'weight': asset.actual_weight / 100
+                        })
+                except:
+                    continue
             
-            if len(returns_df) < 5:
-                logger.warning("Yetersiz veri noktası")
-                return
-            
-            # Ağırlıklar
-            weights = np.array([item['weight'] for item in all_returns])
-            weights = weights / weights.sum()  # Normalize
-            
-            # Portföy günlük getirisi
-            portfolio_returns = (returns_df * weights).sum(axis=1)
-            
-            # Aylık volatilite (günlük std * sqrt(21))
-            daily_vol = portfolio_returns.std()
-            monthly_vol = daily_vol * np.sqrt(21) * 100  # %
-            self.metrics.volatility_monthly = monthly_vol
-            
-            if monthly_vol > self.config.high_volatility_threshold:
-                self.metrics.warnings.append(
-                    f"⚠️ Yüksek volatilite: %{monthly_vol:.1f}"
-                )
-            
-            # Sharpe Ratio (yıllık)
-            # Günlük risk-free rate
-            daily_rf = self.config.risk_free_rate / 252
-            excess_return = portfolio_returns.mean() - daily_rf
-            
-            if daily_vol > 0:
-                sharpe_daily = excess_return / daily_vol
-                sharpe_annual = sharpe_daily * np.sqrt(252)
-                self.metrics.sharpe_ratio = sharpe_annual
-            
-            # Korelasyon matrisi analizi
-            if len(returns_df.columns) > 1:
+            if len(all_returns) >= 2:
+                # Portföy volatilitesi
+                portfolio_returns = pd.Series(dtype=float)
+                
+                for item in all_returns:
+                    if len(portfolio_returns) == 0:
+                        portfolio_returns = item['returns'] * item['weight']
+                    else:
+                        aligned = portfolio_returns.align(item['returns'] * item['weight'], join='inner')
+                        portfolio_returns = aligned[0] + aligned[1]
+                
+                if len(portfolio_returns) > 5:
+                    # Aylık volatilite (annualize)
+                    daily_vol = portfolio_returns.std()
+                    self.metrics.volatility_monthly = daily_vol * np.sqrt(21) * 100
+                    
+                    # Sharpe Ratio
+                    daily_rf = self.config.risk_free_rate / 252
+                    excess_return = portfolio_returns.mean() - daily_rf
+                    
+                    if daily_vol > 0:
+                        self.metrics.sharpe_ratio = (
+                            excess_return / daily_vol * np.sqrt(252)
+                        )
+                
+                # Korelasyon kontrolü
+                returns_df = pd.DataFrame()
+                for item in all_returns:
+                    returns_df[item['code']] = item['returns']
+                
                 corr_matrix = returns_df.corr()
                 
-                # Yüksek korelasyonları bul
-                high_corrs = []
-                for i in range(len(corr_matrix.columns)):
-                    for j in range(i + 1, len(corr_matrix.columns)):
-                        corr = corr_matrix.iloc[i, j]
-                        if abs(corr) > self.config.high_correlation_threshold:
-                            high_corrs.append(
-                                (corr_matrix.columns[i], 
-                                 corr_matrix.columns[j], 
-                                 corr)
-                            )
-                
-                for c1, c2, corr in high_corrs:
-                    self.metrics.warnings.append(
-                        f"⚠️ Yüksek korelasyon: {c1}-{c2} ({corr:.2f})"
-                    )
-                
-                # Çeşitlendirme skoru (ortalama korelasyonun tersi)
-                avg_corr = corr_matrix.values[np.triu_indices_from(
-                    corr_matrix.values, k=1
-                )].mean()
-                self.metrics.diversification_score = (1 - avg_corr) * 100
+                if not corr_matrix.empty:
+                    # Yüksek korelasyonları bul
+                    high_corrs = []
+                    for i in range(len(corr_matrix)):
+                        for j in range(i + 1, len(corr_matrix)):
+                            corr = corr_matrix.iloc[i, j]
+                            if abs(corr) > self.config.high_correlation_threshold:
+                                high_corrs.append(
+                                    (corr_matrix.columns[i], 
+                                     corr_matrix.columns[j], 
+                                     corr)
+                                )
+                    
+                    for c1, c2, corr in high_corrs:
+                        self.metrics.warnings.append(
+                            f"⚠️ Yüksek korelasyon: {c1}-{c2} ({corr:.2f})"
+                        )
+                    
+                    # Çeşitlendirme skoru
+                    avg_corr = corr_matrix.values[np.triu_indices_from(
+                        corr_matrix.values, k=1
+                    )].mean()
+                    self.metrics.diversification_score = (1 - avg_corr) * 100
             
         except Exception as e:
             logger.error(f"Risk metrikleri hesaplama hatası: {e}")
@@ -496,8 +524,27 @@ class Portfolio:
                 'Hedef (%)': asset.target_weight,
                 'Sapma (%)': asset.weight_deviation,
                 'Haftalık (%)': asset.weekly_return,
-                'Öneri': asset.recommendation
+                'Nakit': '✓' if asset.is_cash_reserve else ''
             })
+        
+        return pd.DataFrame(data)
+    
+    def get_cash_reserve_breakdown(self) -> pd.DataFrame:
+        """
+        Nakit rezervi dağılımını döndür.
+        
+        Returns:
+            Nakit varlıklarını içeren DataFrame
+        """
+        data = []
+        
+        for asset in self.assets:
+            if asset.is_cash_reserve and asset.is_valid:
+                data.append({
+                    'Kod': asset.code,
+                    'İsim': asset.name,
+                    'Değer (TRY)': asset.value_try
+                })
         
         return pd.DataFrame(data)
     
@@ -514,13 +561,18 @@ class Portfolio:
             if not asset.is_valid:
                 continue
             
+            # Nakit için korelasyon hesaplama
+            if asset.asset_type == "CASH":
+                continue
+            
             try:
                 if asset.asset_type == "TEFAS":
                     hist = fetch_tefas_history(asset.code, days=30)
                 elif asset.asset_type == "US_STOCK":
                     hist = fetch_us_stock_history(asset.code, days=30)
                 elif asset.asset_type == "CRYPTO":
-                    hist = fetch_crypto_history(asset.code, days=30)
+                    symbol = f"{asset.code}/USDT"
+                    hist = fetch_crypto_history(symbol, days=30)
                 else:
                     continue
                 
@@ -541,49 +593,6 @@ class Portfolio:
             returns_df[item['code']] = item['returns']
         
         return returns_df.corr()
-    
-    def get_rebalancing_suggestions(self) -> list[dict]:
-        """
-        Rebalancing önerilerini hesapla.
-        
-        Returns:
-            Önerileri içeren liste
-        """
-        suggestions = []
-        
-        for asset in self.assets:
-            if not asset.is_valid:
-                continue
-            
-            if abs(asset.weight_deviation) >= self.config.weight_deviation_threshold:
-                # Hedef değere ulaşmak için gerekli işlem
-                target_value = (
-                    self.metrics.total_value_try * 
-                    asset.target_weight / 100
-                )
-                current_value = asset.value_try
-                diff_value = target_value - current_value
-                
-                # Birim fiyat (TRY)
-                if asset.currency in ('USD', 'USDT'):
-                    unit_price_try = asset.current_price * self.usd_try_rate
-                else:
-                    unit_price_try = asset.current_price
-                
-                diff_shares = diff_value / unit_price_try if unit_price_try > 0 else 0
-                
-                suggestions.append({
-                    'code': asset.code,
-                    'name': asset.name,
-                    'current_weight': asset.actual_weight,
-                    'target_weight': asset.target_weight,
-                    'deviation': asset.weight_deviation,
-                    'action': 'AL' if diff_shares > 0 else 'SAT',
-                    'shares': abs(diff_shares),
-                    'value_try': abs(diff_value)
-                })
-        
-        return sorted(suggestions, key=lambda x: abs(x['deviation']), reverse=True)
     
     def get_history_data(self, asset_code: str, days: int = 30) -> pd.DataFrame:
         """
@@ -607,7 +616,12 @@ class Portfolio:
         elif asset.asset_type == "US_STOCK":
             return fetch_us_stock_history(asset_code, days)
         elif asset.asset_type == "CRYPTO":
-            return fetch_crypto_history(asset_code, days)
+            symbol = f"{asset_code}/USDT"
+            return fetch_crypto_history(symbol, days)
+        elif asset.asset_type == "CASH":
+            # Nakit için sabit fiyat döndür
+            dates = pd.date_range(end=datetime.now(), periods=days, freq='D')
+            return pd.DataFrame({'Date': dates, 'Close': [1.0] * days})
         
         return pd.DataFrame(columns=['Date', 'Close'])
 
@@ -651,6 +665,7 @@ if __name__ == "__main__":
     print(f"  - TEFAS fonları: {len(config.tefas_funds)}")
     print(f"  - ABD hisseleri: {len(config.us_stocks)}")
     print(f"  - Kripto: {len(config.crypto)}")
+    print(f"  - Nakit: {len(config.cash)}")
     
     # Portföy oluştur
     portfolio = Portfolio(config)
@@ -662,13 +677,8 @@ if __name__ == "__main__":
     if success:
         print(f"\nUSD/TRY: {portfolio.usd_try_rate:.4f}")
         print(f"Toplam Değer: {format_currency(portfolio.metrics.total_value_try)}")
+        print(f"Nakit Rezervi: {format_currency(portfolio.metrics.cash_reserve_try)} ({portfolio.metrics.cash_reserve_pct:.1f}%)")
         print(f"Haftalık Getiri: {format_percentage(portfolio.metrics.weekly_return_pct)}")
-        
-        if portfolio.metrics.sharpe_ratio:
-            print(f"Sharpe Ratio: {portfolio.metrics.sharpe_ratio:.2f}")
-        
-        if portfolio.metrics.volatility_monthly:
-            print(f"Aylık Volatilite: {portfolio.metrics.volatility_monthly:.2f}%")
         
         print("\n" + "-" * 60)
         print("VARLIK ÖZETİ:")
@@ -676,15 +686,6 @@ if __name__ == "__main__":
         
         df = portfolio.get_summary_dataframe()
         print(df.to_string(index=False))
-        
-        print("\n" + "-" * 60)
-        print("REBALANCING ÖNERİLERİ:")
-        print("-" * 60)
-        
-        suggestions = portfolio.get_rebalancing_suggestions()
-        for s in suggestions:
-            print(f"  {s['code']}: {s['action']} {s['shares']:.4f} adet "
-                  f"({format_currency(s['value_try'])})")
     
     print("\n" + "=" * 60)
     print("TEST TAMAMLANDI")
