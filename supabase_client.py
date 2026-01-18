@@ -94,14 +94,11 @@ def render_login_page():
         # Google ile giriş butonu
         supabase = get_supabase_client()
         
-        if st.button("🔐 Google ile Giriş Yap", type="primary", use_container_width=True):
+        if st.button("🔑 Google ile Giriş Yap", type="primary", use_container_width=True):
             try:
-                # OAuth URL oluştur
+                # OAuth URL oluştur - redirect_to olmadan, Supabase otomatik halleder
                 auth_response = supabase.auth.sign_in_with_oauth({
-                    "provider": "google",
-                    "options": {
-                        "redirect_to": f"https://portfolio-dashboard-ch.streamlit.app"
-                    }
+                    "provider": "google"
                 })
                 
                 if auth_response and auth_response.url:
