@@ -2,9 +2,9 @@
 supabase_client.py - Supabase Authentication & Database
 ========================================================
 
-Google Auth + Email/Password ile giriş ve kullanıcı verisi yönetimi.
+Email/Password ile giriş ve kullanıcı verisi yönetimi.
 
-Yazar: Portfolio Dashboard
+Yazar: Barbarians Trading
 Tarih: Ocak 2026
 """
 
@@ -51,27 +51,18 @@ def is_logged_in() -> bool:
 
 
 def render_login_page():
-    """Login sayfasını render et."""
-    st.markdown("""
-    <style>
-        .login-container {
-            max-width: 400px;
-            margin: 100px auto;
-            padding: 40px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            border-radius: 20px;
-            text-align: center;
-            color: white;
-        }
-    </style>
-    """, unsafe_allow_html=True)
-    
+    """Login sayfasını render et - Sadece Email/Password."""
     col1, col2, col3 = st.columns([1, 2, 1])
     
     with col2:
-        st.markdown("# 📊 Portföy Dashboard")
-        st.markdown("### Profesyonel Portföy Takibi")
-        st.markdown("---")
+        # Header
+        st.markdown("""
+        <div style="text-align: center; margin-bottom: 2rem;">
+            <div style="font-size: 3rem; margin-bottom: 0.5rem;">⚔️</div>
+            <h1 style="font-size: 1.75rem; margin: 0; background: linear-gradient(135deg, #f5f5f7 0%, #e8c068 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">Barbarians Portfolio</h1>
+            <p style="color: #6b6b78; font-size: 0.875rem; margin-top: 0.5rem;">Risk-First Investment Analysis</p>
+        </div>
+        """, unsafe_allow_html=True)
         
         st.markdown("""
         ✅ Gerçek zamanlı fiyat takibi  
@@ -82,14 +73,8 @@ def render_login_page():
         
         st.markdown("---")
         
-        # Tab seçimi: Email veya Google
-        tab1, tab2 = st.tabs(["📧 Email ile Giriş", "🔑 Google ile Giriş"])
-        
-        with tab1:
-            render_email_login()
-        
-        with tab2:
-            render_google_login()
+        # Email Login
+        render_email_login()
         
         st.markdown("---")
         st.caption("Verileriniz güvenle Supabase'de saklanır.")
@@ -128,7 +113,7 @@ def render_email_login():
                 })
                 
                 if result.user:
-                    st.success("✅ Kayıt başarılı! Email'inizi kontrol edin veya direkt giriş yapın.")
+                    st.success("✅ Kayıt başarılı! Şimdi giriş yapabilirsiniz.")
                 else:
                     st.error("Kayıt hatası!")
                     
@@ -171,53 +156,9 @@ def render_email_login():
                     st.error(f"Hata: {error_msg}")
 
 
-def render_google_login():
-    """Google OAuth login."""
-    supabase = get_supabase_client()
-    
-    st.info("⚠️ Google OAuth şu an yapılandırılıyor. Sorun yaşarsanız Email ile giriş yapın.")
-    
-    if st.button("🔑 Google ile Giriş Yap", type="primary", use_container_width=True):
-        try:
-            auth_response = supabase.auth.sign_in_with_oauth({
-                "provider": "google"
-            })
-            
-            if auth_response and auth_response.url:
-                st.markdown(f'<meta http-equiv="refresh" content="0;url={auth_response.url}">', unsafe_allow_html=True)
-                st.info("Google'a yönlendiriliyorsunuz...")
-                
-        except Exception as e:
-            st.error(f"Giriş hatası: {e}")
-
-
 def handle_oauth_callback():
-    """OAuth callback'i işle."""
-    query_params = st.query_params
-    
-    # Hash fragment'tan token al (Supabase bazen böyle gönderiyor)
-    if 'access_token' in query_params:
-        access_token = query_params['access_token']
-        refresh_token = query_params.get('refresh_token', '')
-        
-        try:
-            supabase = get_supabase_client()
-            session = supabase.auth.set_session(access_token, refresh_token)
-            
-            if session and session.user:
-                st.session_state.user = {
-                    'id': session.user.id,
-                    'email': session.user.email,
-                    'name': session.user.user_metadata.get('full_name', session.user.email)
-                }
-                st.session_state.access_token = access_token
-                st.query_params.clear()
-                return True
-                
-        except Exception as e:
-            logger.error(f"OAuth callback hatası: {e}")
-    
-    return False
+    """OAuth callback'i işle (artık kullanılmıyor ama uyumluluk için bırakıldı)."""
+    pass
 
 
 def logout():
