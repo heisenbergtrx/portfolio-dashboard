@@ -2,16 +2,15 @@
 supabase_client.py - Supabase Authentication & Database
 ========================================================
 
-Email/Password ile giriş ve kullanıcı verisi yönetimi.
+Email/Password ile giris ve kullanici verisi yonetimi.
 
 Yazar: Barbarians Trading
 Tarih: Ocak 2026
 """
 
-import json
 import logging
 from datetime import datetime
-from typing import Any, Optional
+from typing import Optional
 
 import streamlit as st
 from supabase import create_client, Client
@@ -22,112 +21,73 @@ logger = logging.getLogger(__name__)
 SUPABASE_URL = "https://ckxbytrgxrdrxtkbaqex.supabase.co"
 SUPABASE_KEY = st.secrets.get("SUPABASE_KEY", "")
 
-# Fallback for local development
 if not SUPABASE_KEY:
     SUPABASE_KEY = "sb_publishable_KRs5qGHDBj9EKdi7lWUIrA_LlWSirRN"
 
 
 def get_supabase_client() -> Client:
-    """Supabase client oluştur."""
+    """Supabase client olustur."""
     return create_client(SUPABASE_URL, SUPABASE_KEY)
 
 
 def init_auth_state():
-    """Auth session state'i başlat."""
+    """Auth session state'i baslat."""
     if 'user' not in st.session_state:
         st.session_state.user = None
     if 'access_token' not in st.session_state:
         st.session_state.access_token = None
+    if 'auth_mode' not in st.session_state:
+        st.session_state.auth_mode = "login"
 
 
 def get_current_user() -> Optional[dict]:
-    """Mevcut kullanıcıyı döndür."""
+    """Mevcut kullaniciyi dondur."""
     return st.session_state.get('user', None)
 
 
 def is_logged_in() -> bool:
-    """Kullanıcı giriş yapmış mı?"""
+    """Kullanici giris yapmis mi?"""
     return st.session_state.get('user') is not None
 
 
 def render_login_page():
-    """Login sayfasını render et - Sadece Email/Password."""
+    """Login sayfasini render et."""
     col1, col2, col3 = st.columns([1, 2, 1])
     
     with col2:
-        # Header
-        st.markdown("""
-        <div style="text-align: center; margin-bottom: 2rem;">
-            <div style="font-size: 3rem; margin-bottom: 0.5rem;">⚔️</div>
-            <h1 style="font-size: 1.75rem; margin: 0; background: linear-gradient(135deg, #f5f5f7 0%, #e8c068 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">Barbarians Portfolio</h1>
-            <p style="color: #6b6b78; font-size: 0.875rem; margin-top: 0.5rem;">Risk-First Investment Analysis</p>
-        </div>
-        """, unsafe_allow_html=True)
-        
-        st.markdown("""
-        ✅ Gerçek zamanlı fiyat takibi  
-        ✅ Risk analizi & Beta hesaplama  
-        ✅ Haftalık snapshot'lar  
-        ✅ Benchmark karşılaştırma  
-        """)
+        st.markdown("## Barbarians Portfolio")
+        st.markdown("*Risk-First Investment Analysis*")
         
         st.markdown("---")
         
-        # Email Login
-        render_email_login()
+        mode = st.session_state.get('auth_mode', 'login')
+        
+        if mode == "login":
+            render_login_form()
+        elif mode == "register":
+            render_register_form()
+        elif mode == "forgot":
+            render_forgot_password_form()
         
         st.markdown("---")
-        st.caption("Verileriniz güvenle Supabase'de saklanır.")
+        st.caption("Verileriniz guvenle Supabase'de saklanir.")
 
 
-def render_email_login():
-    """Email/Password login formu."""
+def render_login_form():
+    """Giris formu."""
+    st.markdown("### Giris Yap")
+    
     supabase = get_supabase_client()
     
-    # Login veya Register seçimi
-    auth_mode = st.radio("", ["Giriş Yap", "Kayıt Ol"], horizontal=True, label_visibility="collapsed")
+    email = st.text_input("Email", placeholder="ornek@email.com", key="login_email")
+    password = st.text_input("Sifre", type="password", placeholder="********", key="login_password")
     
-    email = st.text_input("Email", placeholder="ornek@email.com", key="email_input")
-    password = st.text_input("Şifre", type="password", placeholder="••••••••", key="password_input")
+    col1, col2 = st.columns(2)
     
-    if auth_mode == "Kayıt Ol":
-        password_confirm = st.text_input("Şifre Tekrar", type="password", placeholder="••••••••", key="password_confirm")
-        
-        if st.button("📝 Kayıt Ol", type="primary", use_container_width=True):
+    with col1:
+        if st.button("Giris Yap", type="primary", use_container_width=True):
             if not email or not password:
-                st.error("Email ve şifre gerekli!")
-                return
-            
-            if password != password_confirm:
-                st.error("Şifreler eşleşmiyor!")
-                return
-            
-            if len(password) < 6:
-                st.error("Şifre en az 6 karakter olmalı!")
-                return
-            
-            try:
-                result = supabase.auth.sign_up({
-                    "email": email,
-                    "password": password
-                })
-                
-                if result.user:
-                    st.success("✅ Kayıt başarılı! Şimdi giriş yapabilirsiniz.")
-                else:
-                    st.error("Kayıt hatası!")
-                    
-            except Exception as e:
-                error_msg = str(e)
-                if "already registered" in error_msg.lower():
-                    st.error("Bu email zaten kayıtlı!")
-                else:
-                    st.error(f"Hata: {error_msg}")
-    
-    else:  # Giriş Yap
-        if st.button("🔓 Giriş Yap", type="primary", use_container_width=True):
-            if not email or not password:
-                st.error("Email ve şifre gerekli!")
+                st.error("Email ve sifre gerekli!")
                 return
             
             try:
@@ -143,26 +103,117 @@ def render_email_login():
                         'name': result.user.user_metadata.get('full_name', result.user.email)
                     }
                     st.session_state.access_token = result.session.access_token
-                    st.success("✅ Giriş başarılı!")
+                    st.success("Giris basarili!")
                     st.rerun()
                 else:
-                    st.error("Giriş hatası!")
+                    st.error("Giris hatasi!")
                     
             except Exception as e:
                 error_msg = str(e)
                 if "invalid" in error_msg.lower():
-                    st.error("Email veya şifre yanlış!")
+                    st.error("Email veya sifre yanlis!")
                 else:
                     st.error(f"Hata: {error_msg}")
+    
+    with col2:
+        if st.button("Kayit Ol", use_container_width=True):
+            st.session_state.auth_mode = "register"
+            st.rerun()
+    
+    st.markdown("")
+    if st.button("Sifremi Unuttum", type="secondary"):
+        st.session_state.auth_mode = "forgot"
+        st.rerun()
+
+
+def render_register_form():
+    """Kayit formu."""
+    st.markdown("### Kayit Ol")
+    
+    supabase = get_supabase_client()
+    
+    email = st.text_input("Email", placeholder="ornek@email.com", key="reg_email")
+    password = st.text_input("Sifre", type="password", placeholder="En az 6 karakter", key="reg_password")
+    password_confirm = st.text_input("Sifre Tekrar", type="password", placeholder="********", key="reg_password_confirm")
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        if st.button("Kayit Ol", type="primary", use_container_width=True):
+            if not email or not password:
+                st.error("Email ve sifre gerekli!")
+                return
+            
+            if password != password_confirm:
+                st.error("Sifreler eslesmiyor!")
+                return
+            
+            if len(password) < 6:
+                st.error("Sifre en az 6 karakter olmali!")
+                return
+            
+            try:
+                result = supabase.auth.sign_up({
+                    "email": email,
+                    "password": password
+                })
+                
+                if result.user:
+                    st.success("Kayit basarili! Simdi giris yapabilirsiniz.")
+                    st.session_state.auth_mode = "login"
+                    st.rerun()
+                else:
+                    st.error("Kayit hatasi!")
+                    
+            except Exception as e:
+                error_msg = str(e)
+                if "already registered" in error_msg.lower():
+                    st.error("Bu email zaten kayitli!")
+                else:
+                    st.error(f"Hata: {error_msg}")
+    
+    with col2:
+        if st.button("Geri Don", use_container_width=True):
+            st.session_state.auth_mode = "login"
+            st.rerun()
+
+
+def render_forgot_password_form():
+    """Sifremi unuttum formu."""
+    st.markdown("### Sifremi Unuttum")
+    st.info("Email adresinize sifre sifirlama linki gonderilecek.")
+    
+    supabase = get_supabase_client()
+    
+    email = st.text_input("Email", placeholder="ornek@email.com", key="forgot_email")
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        if st.button("Link Gonder", type="primary", use_container_width=True):
+            if not email:
+                st.error("Email gerekli!")
+                return
+            
+            try:
+                supabase.auth.reset_password_email(email)
+                st.success("Sifre sifirlama linki gonderildi! Email'inizi kontrol edin.")
+            except Exception as e:
+                st.error(f"Hata: {e}")
+    
+    with col2:
+        if st.button("Geri Don", use_container_width=True):
+            st.session_state.auth_mode = "login"
+            st.rerun()
 
 
 def handle_oauth_callback():
-    """OAuth callback'i işle (artık kullanılmıyor ama uyumluluk için bırakıldı)."""
+    """OAuth callback - artik kullanilmiyor."""
     pass
 
 
 def logout():
-    """Çıkış yap."""
+    """Cikis yap."""
     try:
         supabase = get_supabase_client()
         supabase.auth.sign_out()
@@ -171,6 +222,8 @@ def logout():
     
     st.session_state.user = None
     st.session_state.access_token = None
+    st.session_state.config = None
+    st.session_state.portfolio = None
     st.rerun()
 
 
@@ -179,7 +232,7 @@ def logout():
 # =============================================================================
 
 def save_portfolio_config(user_id: str, config: dict) -> bool:
-    """Portföy config'ini kaydet."""
+    """Portfolio config'ini kaydet."""
     try:
         supabase = get_supabase_client()
         
@@ -192,12 +245,12 @@ def save_portfolio_config(user_id: str, config: dict) -> bool:
         return True
         
     except Exception as e:
-        logger.error(f"Config kaydetme hatası: {e}")
+        logger.error(f"Config kaydetme hatasi: {e}")
         return False
 
 
 def load_portfolio_config(user_id: str) -> Optional[dict]:
-    """Portföy config'ini yükle."""
+    """Portfolio config'ini yukle."""
     try:
         supabase = get_supabase_client()
         
@@ -209,12 +262,12 @@ def load_portfolio_config(user_id: str) -> Optional[dict]:
         return None
         
     except Exception as e:
-        logger.error(f"Config yükleme hatası: {e}")
+        logger.error(f"Config yukleme hatasi: {e}")
         return None
 
 
 def save_snapshot(user_id: str, total_value: float, assets: dict) -> bool:
-    """Haftalık snapshot kaydet."""
+    """Haftalik snapshot kaydet."""
     try:
         supabase = get_supabase_client()
         
@@ -228,12 +281,12 @@ def save_snapshot(user_id: str, total_value: float, assets: dict) -> bool:
         return True
         
     except Exception as e:
-        logger.error(f"Snapshot kaydetme hatası: {e}")
+        logger.error(f"Snapshot kaydetme hatasi: {e}")
         return False
 
 
-def load_snapshots(user_id: str, limit: int = 52) -> list[dict]:
-    """Kullanıcının snapshot'larını yükle."""
+def load_snapshots(user_id: str, limit: int = 52) -> list:
+    """Kullanicinin snapshot'larini yukle."""
     try:
         supabase = get_supabase_client()
         
@@ -250,12 +303,12 @@ def load_snapshots(user_id: str, limit: int = 52) -> list[dict]:
         return []
         
     except Exception as e:
-        logger.error(f"Snapshot yükleme hatası: {e}")
+        logger.error(f"Snapshot yukleme hatasi: {e}")
         return []
 
 
 def get_latest_snapshot(user_id: str) -> Optional[dict]:
-    """En son snapshot'ı getir."""
+    """En son snapshot'i getir."""
     try:
         supabase = get_supabase_client()
         
@@ -274,7 +327,7 @@ def get_latest_snapshot(user_id: str) -> Optional[dict]:
 
 
 def should_take_weekly_snapshot(user_id: str) -> bool:
-    """Bu hafta snapshot alınmış mı kontrol et."""
+    """Bu hafta snapshot alinmis mi kontrol et."""
     today = datetime.now()
     
     if today.weekday() != 4:
@@ -298,7 +351,7 @@ def should_take_weekly_snapshot(user_id: str) -> bool:
 
 
 def delete_all_snapshots(user_id: str) -> bool:
-    """Kullanıcının tüm snapshot'larını sil."""
+    """Kullanicinin tum snapshot'larini sil."""
     try:
         supabase = get_supabase_client()
         
@@ -307,5 +360,5 @@ def delete_all_snapshots(user_id: str) -> bool:
         return True
         
     except Exception as e:
-        logger.error(f"Snapshot silme hatası: {e}")
+        logger.error(f"Snapshot silme hatasi: {e}")
         return False
