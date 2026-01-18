@@ -1,37 +1,11 @@
-# Portfolio Dashboard - Requirements
-# Python 3.11+ required
-
-# Web Framework
-streamlit>=1.40.0
-
-# Data Processing
-pandas>=2.2.0
-numpy>=1.26.0
-
-# Visualization
-plotly>=5.24.0
-
-# Financial Data - US Stocks & FX
-yfinance>=0.2.48
-
-# Cryptocurrency Data
-ccxt>=4.4.0
-
-# TEFAS (Turkish Fund) Data
-tefas-crawler>=0.5.0
-
-# Fallback scraping tools
-selenium>=4.27.0
-webdriver-manager>=4.0.2
-beautifulsoup4>=4.12.3
-requests>=2.32.0
-lxml>=5.3.0
-
-# Configuration
-pyyaml>=6.0.2
-
-# Caching & Utilities
-cachetools>=5.5.0
-
-# Type hints support (built-in for 3.11+, but explicit for IDE)
-typing-extensions>=4.12.0
+streamlit>=1.28.0
+pandas>=2.0.0
+numpy>=1.24.0
+plotly>=5.18.0
+yfinance>=0.2.33
+ccxt>=4.1.0
+pyyaml>=6.0
+requests>=2.31.0
+certifi>=2023.7.22
+tefas-crawler>=0.3.0
+supabase>=2.0.0
